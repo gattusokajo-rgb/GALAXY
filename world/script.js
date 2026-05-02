@@ -1,6 +1,7 @@
-// ===== CURSOR =====
+// =====================
+// CURSOR
+// =====================
 const cursor = document.querySelector(".cursor");
-
 let mouse = { x: 0, y: 0 };
 
 window.addEventListener("mousemove", (e) => {
@@ -9,9 +10,60 @@ window.addEventListener("mousemove", (e) => {
 
   cursor.style.left = mouse.x + "px";
   cursor.style.top = mouse.y + "px";
+
+  startAudioOnce(); // trigger audio first interaction
 });
 
-// ===== GALAXY =====
+// =====================
+// AUDIO SYSTEM (CINEMATIC)
+// =====================
+const music = document.getElementById("bgmusic");
+
+let audioStarted = false;
+
+async function startAudioOnce() {
+  if (audioStarted) return;
+
+  try {
+    music.volume = 0;
+    await music.play();
+
+    setTimeout(() => {
+      cinematicFadeIn();
+    }, 1500);
+
+    audioStarted = true;
+  } catch (e) {}
+}
+
+function cinematicFadeIn() {
+  let target = 0.4;
+  let step = target / 120;
+
+  let fade = setInterval(() => {
+    if (music.volume < target) {
+      music.volume += step;
+    } else {
+      clearInterval(fade);
+      startBreathing();
+    }
+  }, 50);
+}
+
+function startBreathing() {
+  setInterval(() => {
+    if (!audioStarted) return;
+
+    let base = 0.35;
+    let breath = Math.sin(Date.now() * 0.0015) * 0.05;
+
+    music.volume = base + breath;
+  }, 100);
+}
+
+// =====================
+// GALAXY BACKGROUND
+// =====================
 const canvas = document.getElementById("galaxy");
 const ctx = canvas.getContext("2d");
 
@@ -57,9 +109,13 @@ function galaxy() {
 
 galaxy();
 
-// ===== WORLD =====
+// =====================
+// WORLD + HEART PHYSICS
+// =====================
 const intro = document.getElementById("intro");
 const world = document.getElementById("world");
+
+let photos = [];
 
 const images = [
   "assets/photo1.jpg",
@@ -67,9 +123,9 @@ const images = [
   "assets/photo3.jpg"
 ];
 
-let photos = [];
-
-// ===== PHOTO CLASS (LOVE HEART PHYSICS) =====
+// =====================
+// PHOTO CLASS (HEART + BREATH)
+// =====================
 class Photo {
   constructor(x, y, img) {
     this.x = x;
@@ -86,27 +142,25 @@ class Photo {
 
     this.el.appendChild(im);
     world.appendChild(this.el);
-
-    this.baseScale = 1;
   }
 
   heart(t) {
-    const x = 16 * Math.pow(Math.sin(t), 3);
-    const y =
-      13 * Math.cos(t) -
-      5 * Math.cos(2 * t) -
-      2 * Math.cos(3 * t) -
-      Math.cos(4 * t);
-
-    return { x, y };
+    return {
+      x: 16 * Math.pow(Math.sin(t), 3),
+      y:
+        13 * Math.cos(t) -
+        5 * Math.cos(2 * t) -
+        2 * Math.cos(3 * t) -
+        Math.cos(4 * t)
+    };
   }
 
   update(i, time) {
 
+    // 💓 heartbeat universe
     let beat = 1 + Math.sin(time * 0.002) * 0.08;
 
     let t = i * 0.25;
-
     let target = this.heart(t);
 
     target.x = target.x * 18 * beat + window.innerWidth / 2;
@@ -124,14 +178,16 @@ class Photo {
     this.x += this.vx;
     this.y += this.vy;
 
-    let scale = this.baseScale + Math.sin(time * 0.003 + i) * 0.05;
+    let scale = 1 + Math.sin(time * 0.003 + i) * 0.05;
 
     this.el.style.transform =
       `translate(${this.x}px, ${this.y}px) scale(${scale})`;
   }
 }
 
-// ===== SPAWN UNIVERSE =====
+// =====================
+// SPAWN UNIVERSE
+// =====================
 function spawnUniverse() {
   for (let i = 0; i < 70; i++) {
     let img = images[Math.floor(Math.random() * images.length)];
@@ -146,24 +202,32 @@ function spawnUniverse() {
   }
 }
 
-// ===== LOOP =====
+// =====================
+// ANIMATION LOOP
+// =====================
 function animate(time) {
-  photos.forEach((p, i) => {
-    p.update(i, time);
-  });
-
+  photos.forEach((p, i) => p.update(i, time));
   requestAnimationFrame(animate);
 }
 
 animate();
 
-// ===== CLICK TO START =====
+// =====================
+// INTRO CLICK START
+// =====================
 intro.addEventListener("click", () => {
-  intro.style.display = "none";
-  spawnUniverse();
+  intro.style.opacity = "0";
+
+  setTimeout(() => {
+    intro.style.display = "none";
+    spawnUniverse();
+    startAudioOnce();
+  }, 800);
 });
 
-// resize
+// =====================
+// RESIZE
+// =====================
 window.addEventListener("resize", () => {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
